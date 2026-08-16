@@ -818,7 +818,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // GAME LOOP
     // =================================================
-
+    /**
+     * Starts or restarts the main game loop.
+     * Controls the automatic downward movement speed based on the current level.
+     */
     private void startGameLoop() {
 
         if (gameLoop != null) {
@@ -856,7 +859,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // PAUSE
     // =================================================
-
+    /**
+     * Toggles the game between paused and running states.
+     * Pauses or resumes the game loop and updates the status display.
+     */
     private void togglePause() {
 
         if (gameOver) {
@@ -887,7 +893,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // GAME OVER
     // =================================================
-
+    /**
+     * Ends the current game when the player can no longer continue.
+     * Stops the game loop and updates the game-over state.
+     */
     private void endGame() {
 
         gameOver = true;
@@ -907,7 +916,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // RESTART
     // =================================================
-
+    /**
+     * Restarts the game and resets the board to its initial state.
+     * Clears existing blocks, resets game values, and starts a new game.
+     */
     public void restartGame() {
 
         if (gameLoop != null) {
@@ -958,7 +970,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // INFORMATION
     // =================================================
-
+    /**
+     * Updates the information displayed to the player.
+     * Refreshes the score, lines, level, and current game status.
+     */
     private void updateInformation() {
 
         scoreLabel.setText(
