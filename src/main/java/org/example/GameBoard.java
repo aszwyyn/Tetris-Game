@@ -619,7 +619,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // LOCK PIECE
     // =================================================
-
+    /**
+     * Locks the current Tetromino into the game board.
+     * Stores each occupied cell and then checks for completed lines.
+     */
     private void lockPiece() {
 
         if (currentPiece == null) {
