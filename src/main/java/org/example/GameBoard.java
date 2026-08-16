@@ -673,7 +673,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // LINE CLEARING
     // =================================================
-
+    /**
+     * Checks the game board for completed rows.
+     * Removes full lines and updates the player's score.
+     */
     private void clearLines() {
 
         int cleared = 0;
