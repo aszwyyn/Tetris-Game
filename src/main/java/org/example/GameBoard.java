@@ -764,7 +764,10 @@ public class GameBoard extends BorderPane {
     // =================================================
     // DRAW FIXED BLOCKS
     // =================================================
-
+    /**
+     * Redraws all fixed blocks currently stored on the game board.
+     * Updates the visual layer to reflect the current board state.
+     */
     private void drawFixedBlocks() {
 
         fixedLayer.getChildren()
