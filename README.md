@@ -28,6 +28,7 @@ A JavaFX-based Tetris game developed as part of the 7010ICT project.
 - Git and GitHub
 
 ## Controls
+The following keyboard controls are used to play the game:
 
 - Left Arrow - Move piece left
 - Right Arrow - Move piece right
