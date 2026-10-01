@@ -1,4 +1,4 @@
-package org.example;
+package org.example.model;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -347,7 +347,7 @@ public class GameBoard extends BorderPane {
                         ];
 
         currentPiece =
-                new Tetromino(type);
+                TetrominoFactory.createTetromino(type);
 
         currentPiece.setGridPosition(
                 3,
@@ -371,7 +371,7 @@ public class GameBoard extends BorderPane {
     // LEFT
     // =================================================
 
-    private void moveLeft() {
+    public void moveLeft() {
 
         int newColumn =
                 currentPiece.getColumn() - 1;
@@ -393,7 +393,7 @@ public class GameBoard extends BorderPane {
     // RIGHT
     // =================================================
 
-    private void moveRight() {
+    public void moveRight() {
 
         int newColumn =
                 currentPiece.getColumn() + 1;
@@ -415,7 +415,7 @@ public class GameBoard extends BorderPane {
     // SOFT DROP
     // =================================================
 
-    private void softDrop() {
+    public void softDrop() {
 
         int newRow =
                 currentPiece.getRow() + 1;
@@ -502,7 +502,7 @@ public class GameBoard extends BorderPane {
     // ROTATION
     // =================================================
 
-    private void rotatePiece() {
+    public void rotatePiece() {
 
         currentPiece.rotate();
 
@@ -550,7 +550,7 @@ public class GameBoard extends BorderPane {
     // HARD DROP
     // =================================================
 
-    private void hardDrop() {
+    public void hardDrop() {
 
         int distance = 0;
 
@@ -863,7 +863,7 @@ public class GameBoard extends BorderPane {
      * Toggles the game between paused and running states.
      * Pauses or resumes the game loop and updates the status display.
      */
-    private void togglePause() {
+    public void togglePause() {
 
         if (gameOver) {
             return;

@@ -1,4 +1,4 @@
-package org.example;
+package org.example.view;
 
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
@@ -9,8 +9,14 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import org.example.model.GameBoard;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 import java.util.Optional;
+import org.example.model.HighScoreFileManager;
+import org.example.model.NetworkManager;
 
 public class TetrisApplication
         extends Application {
@@ -425,7 +431,29 @@ public class TetrisApplication
                 "Dylan"
         };
 
-        int value = 10000;
+        List<Integer> scoreValues = Arrays.asList(
+                10000, 9250, 8500, 7750, 7000,
+                6250, 5500, 4750, 4000, 3250
+        );
+
+        List<Integer> sortedScores = scoreValues.stream()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+
+        Thread scoreThread = new Thread(() -> {
+            System.out.println(NetworkManager.checkConnection());
+
+            if (HighScoreFileManager.loadScores().isEmpty()) {
+                for (int i = 0; i < names.length; i++) {
+                    HighScoreFileManager.saveScore(
+                            names[i],
+                            sortedScores.get(i)
+                    );
+                }
+            }
+        });
+
+        scoreThread.start();
 
         for (int i = 0;
              i < names.length;
@@ -437,7 +465,7 @@ public class TetrisApplication
                                     + ". "
                                     + names[i]
                                     + "     "
-                                    + value
+                                    + sortedScores.get(i)
                     );
 
             score.setStyle(
@@ -448,7 +476,7 @@ public class TetrisApplication
             scores.getChildren()
                     .add(score);
 
-            value -= 750;
+
         }
 
         Button back =

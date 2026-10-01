@@ -1,0 +1,37 @@
+@startuml
+title Tetris - Final Allocation / Deployment Diagram
+
+node "User Computer" {
+
+    node "Java Runtime Environment" {
+
+        component "JavaFX Application" as App
+
+        package "view" {
+            component "TetrisApplication" as View
+        }
+
+        package "controller" {
+            component "GameController" as Controller
+        }
+
+        package "model" {
+            component "GameBoard" as Board
+            component "GamePiece" as Piece
+            component "Tetromino" as Tetromino
+            component "Movable" as Movable
+            component "Position" as Position
+        }
+    }
+}
+
+App --> View : launches
+View --> Controller : user actions
+View --> Board : displays game
+Controller --> Board : controls
+Board --> Tetromino : current piece
+Tetromino --|> Piece : extends
+Piece ..|> Movable : implements
+Tetromino --> Position : uses
+
+@enduml
