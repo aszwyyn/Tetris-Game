@@ -14,17 +14,21 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 import java.util.Random;
+import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+
+
 
 public class GameBoard extends BorderPane {
 
-    private static final int ROWS = 20;
+    private final int ROWS;
 
-    private static final int COLUMNS = 10;
+    private final int COLUMNS;
 
     private static final int CELL_SIZE = 25;
 
-    private final Color[][] board =
-            new Color[ROWS][COLUMNS];
+    private final Color[][] board;
 
     private final Pane gridLayer =
             new Pane();
@@ -38,8 +42,8 @@ public class GameBoard extends BorderPane {
     private final StackPane playArea =
             new StackPane();
 
-    private final Random random =
-            new Random();
+    private final Random random;
+
 
     private Tetromino currentPiece;
 
@@ -48,6 +52,13 @@ public class GameBoard extends BorderPane {
     private boolean paused = false;
 
     private boolean gameOver = false;
+    private boolean musicEnabled;
+
+    private boolean soundEnabled;
+    private MediaPlayer musicPlayer;
+    private AudioClip clearSound;
+    private boolean aiEnabled;
+    private Timeline aiLoop;
 
     private boolean animationRunning = false;
 
@@ -68,9 +79,66 @@ public class GameBoard extends BorderPane {
 
     private final Label statusLabel =
             new Label();
+    private final Label playerTypeLabel =
+            new Label();
 
 
     public GameBoard() {
+        this(null, System.nanoTime());
+    }
+
+    public GameBoard(Boolean aiOverride, long seed) {
+
+        random = new Random(seed);
+
+        ConfigurationManager.GameConfig config =
+                ConfigurationManager.loadConfig();
+        musicEnabled = config.music;
+        soundEnabled = config.sound;
+        aiEnabled =
+                aiOverride != null
+                        ? aiOverride
+                        : config.ai;
+        try {
+            String musicPath = getClass()
+                    .getResource("/audio/music.mp3")
+                    .toExternalForm();
+
+            Media music = new Media(musicPath);
+            musicPlayer = new MediaPlayer(music);
+            musicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            musicPlayer.setVolume(0.35);
+
+            String soundPath = getClass()
+                    .getResource("/audio/clear.mp3")
+                    .toExternalForm();
+
+            clearSound = new AudioClip(soundPath);
+
+            if (musicEnabled) {
+                musicPlayer.play();
+            }
+
+        } catch (Exception e) {
+            System.out.println("Audio loading error: " + e.getMessage());
+        }
+
+        String size = config.fieldSize;
+
+        if ("12 x 24".equals(size)) {
+            COLUMNS = 12;
+            ROWS = 24;
+
+        } else if ("14 x 28".equals(size)) {
+            COLUMNS = 14;
+            ROWS = 28;
+
+        } else {
+            COLUMNS = 10;
+            ROWS = 20;
+        }
+
+        board = new Color[ROWS][COLUMNS];
 
         createPlayArea();
 
@@ -83,6 +151,10 @@ public class GameBoard extends BorderPane {
         createNewPiece();
 
         startGameLoop();
+
+        if (aiEnabled) {
+            startAI();
+        }
 
         setStyle(
                 "-fx-background-color: #111111;"
@@ -202,6 +274,7 @@ public class GameBoard extends BorderPane {
         styleInformationLabel(scoreLabel);
         styleInformationLabel(linesLabel);
         styleInformationLabel(levelLabel);
+        styleInformationLabel(playerTypeLabel);
 
         statusLabel.setStyle(
                 "-fx-font-size: 18px;" +
@@ -213,7 +286,7 @@ public class GameBoard extends BorderPane {
                 new Label(
                         """
                         CONTROLS
-
+        
                         ←  Move Left
                         →  Move Right
                         ↓  Soft Drop
@@ -221,6 +294,8 @@ public class GameBoard extends BorderPane {
                         SPACE  Hard Drop
                         P  Pause
                         R  Restart
+                        M  Music On/Off
+                        S  Sound On/Off
                         """
                 );
 
@@ -245,6 +320,7 @@ public class GameBoard extends BorderPane {
                         scoreLabel,
                         linesLabel,
                         levelLabel,
+                        playerTypeLabel,
                         statusLabel,
                         controls,
                         restart
@@ -302,7 +378,31 @@ public class GameBoard extends BorderPane {
 
                 return;
             }
+            if (event.getCode() == KeyCode.M) {
 
+                musicEnabled = !musicEnabled;
+
+                statusLabel.setText(
+                        musicEnabled
+                                ? "MUSIC ON"
+                                : "MUSIC OFF"
+                );
+
+                return;
+            }
+
+            if (event.getCode() == KeyCode.S) {
+
+                soundEnabled = !soundEnabled;
+
+                statusLabel.setText(
+                        soundEnabled
+                                ? "SOUND ON"
+                                : "SOUND OFF"
+                );
+
+                return;
+            }
             if (paused ||
                     gameOver ||
                     animationRunning ||
@@ -740,13 +840,15 @@ public class GameBoard extends BorderPane {
 
         score += switch (cleared) {
 
-            case 1 -> 100 * level;
+            case 1 -> 100;
 
-            case 2 -> 300 * level;
+            case 2 -> 300;
 
-            case 3 -> 500 * level;
+            case 3 -> 600;
 
-            default -> 800 * level;
+            case 4 -> 1000;
+
+            default -> 0;
         };
 
         int newLevel =
@@ -813,8 +915,77 @@ public class GameBoard extends BorderPane {
             }
         }
     }
+    private void startAI() {
+
+        if (aiLoop != null) {
+            aiLoop.stop();
+        }
+
+        aiLoop = new Timeline(
+                new KeyFrame(
+                        Duration.millis(180),
+                        event -> {
+
+                            if (paused ||
+                                    gameOver ||
+                                    animationRunning ||
+                                    currentPiece == null) {
+                                return;
+                            }
+
+                            int bestColumn = findBestAIColumn();
+
+                            if (currentPiece.getColumn() < bestColumn) {
+                                moveRight();
+
+                            } else if (currentPiece.getColumn() > bestColumn) {
+                                moveLeft();
+
+                            } else {
+                                hardDrop();
+                            }
+                        }
+                )
+        );
+
+        aiLoop.setCycleCount(Timeline.INDEFINITE);
+        aiLoop.play();
+    }
 
 
+    private int findBestAIColumn() {
+
+        int bestColumn = currentPiece.getColumn();
+        int bestRow = -1;
+
+        for (int column = -4;
+             column < COLUMNS;
+             column++) {
+
+            int row = currentPiece.getRow();
+
+            if (!canPlace(
+                    currentPiece,
+                    column,
+                    row)) {
+                continue;
+            }
+
+            while (canPlace(
+                    currentPiece,
+                    column,
+                    row + 1)) {
+                row++;
+            }
+
+            if (row > bestRow) {
+                bestRow = row;
+                bestColumn = column;
+            }
+        }
+
+        return bestColumn;
+    }
     // =================================================
     // GAME LOOP
     // =================================================
@@ -904,6 +1075,9 @@ public class GameBoard extends BorderPane {
         if (gameLoop != null) {
             gameLoop.stop();
         }
+        if (aiLoop != null) {
+            aiLoop.stop();
+        }
 
         statusLabel.setText(
                 "GAME OVER\nPress R"
@@ -963,8 +1137,16 @@ public class GameBoard extends BorderPane {
 
         startGameLoop();
 
+        if (aiEnabled) {
+            startAI();
+        }
+
         requestFocus();
     }
+
+
+
+
 
 
     // =================================================
@@ -987,7 +1169,11 @@ public class GameBoard extends BorderPane {
         levelLabel.setText(
                 "Level: " + level
         );
-
+        playerTypeLabel.setText(
+                aiEnabled
+                        ? "Player: AI"
+                        : "Player: Human"
+        );
         if (paused) {
 
             statusLabel.setText(

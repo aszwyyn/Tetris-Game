@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Optional;
 import org.example.model.HighScoreFileManager;
 import org.example.model.NetworkManager;
+import org.example.model.ConfigurationManager;
+import javafx.scene.layout.HBox;
 
 public class TetrisApplication
         extends Application {
@@ -30,6 +32,8 @@ public class TetrisApplication
     public void start(Stage stage) {
 
         this.stage = stage;
+        stage.setFullScreen(true);
+        stage.setFullScreenExitHint("");
 
         stage.setTitle(
                 "7010ICT Tetris"
@@ -139,6 +143,10 @@ public class TetrisApplication
                 createMenuButton(
                         "PLAY"
                 );
+        Button twoPlayer =
+                createMenuButton(
+                        "TWO PLAYER"
+                );
 
         Button configuration =
                 createMenuButton(
@@ -158,7 +166,9 @@ public class TetrisApplication
         play.setOnAction(
                 event -> showGame()
         );
-
+        twoPlayer.setOnAction(
+                event -> showTwoPlayerGame()
+        );
         configuration.setOnAction(
                 event ->
                         showConfiguration()
@@ -179,6 +189,7 @@ public class TetrisApplication
                         18,
                         title,
                         play,
+                        twoPlayer,
                         configuration,
                         scores,
                         exit
@@ -239,9 +250,45 @@ public class TetrisApplication
 
         stage.setScene(scene);
 
+        stage.sizeToScene();
+
         stage.centerOnScreen();
 
         game.requestFocus();
+    }
+    private void showTwoPlayerGame() {
+
+        long sharedSeed = System.nanoTime();
+
+        GameBoard playerOne =
+                new GameBoard(false, sharedSeed);
+
+        GameBoard playerTwo =
+                new GameBoard(true, sharedSeed);
+
+        HBox root =
+                new HBox(
+                        20,
+                        playerOne,
+                        playerTwo
+                );
+
+        root.setAlignment(Pos.CENTER);
+
+        root.setStyle(
+                "-fx-background-color: #111111;"
+        );
+
+        Scene scene =
+                new Scene(root);
+
+        stage.setScene(scene);
+
+        stage.sizeToScene();
+
+        stage.centerOnScreen();
+
+        playerOne.requestFocus();
     }
 
 
@@ -251,10 +298,11 @@ public class TetrisApplication
 
     private void showConfiguration() {
 
+        ConfigurationManager.GameConfig config =
+                ConfigurationManager.loadConfig();
+
         Label title =
-                new Label(
-                        "CONFIGURATION"
-                );
+                new Label("CONFIGURATION");
 
         title.setStyle(
                 "-fx-font-size: 30px;" +
@@ -264,7 +312,8 @@ public class TetrisApplication
 
         Label levelText =
                 new Label(
-                        "Starting Level: 1"
+                        "Starting Level: " +
+                                config.startingLevel
                 );
 
         levelText.setStyle(
@@ -275,7 +324,7 @@ public class TetrisApplication
                 new Slider(
                         1,
                         10,
-                        1
+                        config.startingLevel
                 );
 
         level.setShowTickLabels(true);
@@ -283,17 +332,13 @@ public class TetrisApplication
         level.setMajorTickUnit(1);
         level.setSnapToTicks(true);
 
-        level.valueProperty()
-                .addListener(
-                        (observable,
-                         oldValue,
-                         newValue) ->
-
-                                levelText.setText(
-                                        "Starting Level: "
-                                                + newValue.intValue()
-                                )
-                );
+        level.valueProperty().addListener(
+                (observable, oldValue, newValue) ->
+                        levelText.setText(
+                                "Starting Level: " +
+                                        newValue.intValue()
+                        )
+        );
 
         ComboBox<String> fieldSize =
                 new ComboBox<>();
@@ -305,28 +350,25 @@ public class TetrisApplication
         );
 
         fieldSize.setValue(
-                "10 x 20"
+                config.fieldSize
         );
 
         CheckBox music =
-                new CheckBox(
-                        "Music"
-                );
+                new CheckBox("Music");
 
         CheckBox sound =
-                new CheckBox(
-                        "Sound Effects"
-                );
+                new CheckBox("Sound Effects");
 
         CheckBox ai =
-                new CheckBox(
-                        "AI Play"
-                );
+                new CheckBox("AI Play");
 
         CheckBox extended =
-                new CheckBox(
-                        "Extended Mode"
-                );
+                new CheckBox("Extended Mode");
+
+        music.setSelected(config.music);
+        sound.setSelected(config.sound);
+        ai.setSelected(config.ai);
+        extended.setSelected(config.extendedMode);
 
         music.setStyle(
                 "-fx-text-fill: white;"
@@ -344,10 +386,53 @@ public class TetrisApplication
                 "-fx-text-fill: white;"
         );
 
-        Button back =
+        Button save =
                 createMenuButton(
-                        "BACK"
+                        "SAVE CONFIGURATION"
                 );
+
+        Label savedMessage =
+                new Label("");
+
+        savedMessage.setStyle(
+                "-fx-text-fill: lightgreen;" +
+                        "-fx-font-weight: bold;"
+        );
+
+        save.setOnAction(event -> {
+
+            ConfigurationManager.GameConfig newConfig =
+                    new ConfigurationManager.GameConfig();
+
+            newConfig.startingLevel =
+                    (int) level.getValue();
+
+            newConfig.fieldSize =
+                    fieldSize.getValue();
+
+            newConfig.music =
+                    music.isSelected();
+
+            newConfig.sound =
+                    sound.isSelected();
+
+            newConfig.ai =
+                    ai.isSelected();
+
+            newConfig.extendedMode =
+                    extended.isSelected();
+
+            ConfigurationManager.saveConfig(
+                    newConfig
+            );
+
+            savedMessage.setText(
+                    "Configuration saved!"
+            );
+        });
+
+        Button back =
+                createMenuButton("BACK");
 
         back.setOnAction(
                 event ->
@@ -356,11 +441,18 @@ public class TetrisApplication
                         )
         );
 
+        Label fieldSizeLabel =
+                new Label("Field Size");
+
+        fieldSizeLabel.setStyle(
+                "-fx-text-fill: white;"
+        );
+
         VBox root =
                 new VBox(
                         15,
                         title,
-                        new Label("Field Size"),
+                        fieldSizeLabel,
                         fieldSize,
                         levelText,
                         level,
@@ -368,6 +460,8 @@ public class TetrisApplication
                         sound,
                         ai,
                         extended,
+                        save,
+                        savedMessage,
                         back
                 );
 
@@ -387,23 +481,16 @@ public class TetrisApplication
                 new Scene(
                         root,
                         700,
-                        650
+                        700
                 );
 
         stage.setScene(scene);
     }
 
-
-    // =============================================
-    // HIGH SCORES
-    // =============================================
-
     private void showHighScores() {
 
         Label title =
-                new Label(
-                        "HIGH SCORES"
-                );
+                new Label("HIGH SCORES");
 
         title.setStyle(
                 "-fx-font-size: 30px;" +
@@ -411,78 +498,72 @@ public class TetrisApplication
                         "-fx-text-fill: white;"
         );
 
-        VBox scores =
+        VBox scoresBox =
                 new VBox(8);
 
-        scores.setAlignment(
+        scoresBox.setAlignment(
                 Pos.CENTER
         );
 
-        String[] names = {
-                "Alex",
-                "Sam",
-                "Jordan",
-                "Taylor",
-                "Morgan",
-                "Jamie",
-                "Chris",
-                "Casey",
-                "Riley",
-                "Dylan"
-        };
+        List<HighScoreFileManager.ScoreEntry> scores =
+                new java.util.ArrayList<>(
+                        HighScoreFileManager.loadScores()
+                );
 
-        List<Integer> scoreValues = Arrays.asList(
-                10000, 9250, 8500, 7750, 7000,
-                6250, 5500, 4750, 4000, 3250
+        scores.sort(
+                Comparator.comparingInt(
+                        HighScoreFileManager.ScoreEntry::score
+                ).reversed()
         );
 
-        List<Integer> sortedScores = scoreValues.stream()
-                .sorted(Comparator.reverseOrder())
-                .toList();
+        int numberOfScores =
+                Math.min(10, scores.size());
 
-        Thread scoreThread = new Thread(() -> {
-            System.out.println(NetworkManager.checkConnection());
+        if (numberOfScores == 0) {
 
-            if (HighScoreFileManager.loadScores().isEmpty()) {
-                for (int i = 0; i < names.length; i++) {
-                    HighScoreFileManager.saveScore(
-                            names[i],
-                            sortedScores.get(i)
-                    );
-                }
-            }
-        });
+            Label noScores =
+                    new Label("No high scores yet.");
 
-        scoreThread.start();
-
-        for (int i = 0;
-             i < names.length;
-             i++) {
-
-            Label score =
-                    new Label(
-                            (i + 1)
-                                    + ". "
-                                    + names[i]
-                                    + "     "
-                                    + sortedScores.get(i)
-                    );
-
-            score.setStyle(
+            noScores.setStyle(
                     "-fx-text-fill: white;" +
                             "-fx-font-size: 16px;"
             );
 
-            scores.getChildren()
-                    .add(score);
+            scoresBox.getChildren().add(
+                    noScores
+            );
 
+        } else {
 
+            for (int i = 0;
+                 i < numberOfScores;
+                 i++) {
+
+                HighScoreFileManager.ScoreEntry entry =
+                        scores.get(i);
+
+                Label scoreLabel =
+                        new Label(
+                                (i + 1)
+                                        + ". "
+                                        + entry.name()
+                                        + "     "
+                                        + entry.score()
+                        );
+
+                scoreLabel.setStyle(
+                        "-fx-text-fill: white;" +
+                                "-fx-font-size: 16px;"
+                );
+
+                scoresBox.getChildren().add(
+                        scoreLabel
+                );
+            }
         }
 
         Button back =
-                createMenuButton(
-                        "BACK"
-                );
+                createMenuButton("BACK");
 
         back.setOnAction(
                 event ->
@@ -495,7 +576,7 @@ public class TetrisApplication
                 new VBox(
                         20,
                         title,
-                        scores,
+                        scoresBox,
                         back
                 );
 
@@ -516,11 +597,6 @@ public class TetrisApplication
 
         stage.setScene(scene);
     }
-
-
-    // =============================================
-    // EXIT CONFIRMATION
-    // =============================================
 
     private void confirmExit() {
 

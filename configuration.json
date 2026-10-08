@@ -1,0 +1,8 @@
+{
+  "startingLevel": 1,
+  "fieldSize": "12 x 24",
+  "music": true,
+  "sound": true,
+  "ai": true,
+  "extendedMode": true
+}
